@@ -2,9 +2,9 @@ package edu.luc.cs.webservices.unfiltered.bookmarks
 
 import scala.collection.mutable.{Map, HashMap}
 
-abstract class UserRepository {
+trait UserRepository {
   def findByName(name: String): Option[User]
-  def store(user: User): Unit
+  def store(user: User): Option[User]
   def remove(name: String): Option[User]
 }
 
