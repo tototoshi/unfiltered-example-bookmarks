@@ -9,6 +9,7 @@ import org.clapper.avsl.Logger
 import collection.immutable.Map
 import java.util.Date
 
+// TODO root resource
 
 class UserResource(val userRepository: UserRepository) extends Plan {
   val logger = Logger(classOf[UserResource])
@@ -108,7 +109,7 @@ class BookmarkResource(val userRepository: UserRepository) extends Plan {
   def verify(u: String, p: String, user: User) = authSvc.verify(u, p) && user.name == u
   def Fail(name: String) = Unauthorized ~> WWWAuthenticate("""Basic realm="/""" + name + "\"")
 
-  def uriToString(uri: Seq[String]) = uri.reduceLeft((x, y) => x + "/" + y)
+  def uriToString(uri: Seq[String]) = uri.mkString("/")
   
   def storeBookmarkFromForm(name: String, uri: String, form: Map[String, Seq[String]]) = {
 	val user = userRepository.findByName(name).get

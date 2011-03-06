@@ -2,6 +2,9 @@ package edu.luc.cs.webservices.unfiltered.bookmarks
 
 import scala.collection.mutable.{Map, HashMap}
 
+// TODO convert UserRepository to service facade for
+// easy replacement with persistent version
+
 trait UserRepository {
   def findByName(name: String): Option[User]
   def store(user: User): Option[User]

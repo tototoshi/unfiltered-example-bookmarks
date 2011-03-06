@@ -2,10 +2,11 @@ import sbt._
 
 class Project(info: ProjectInfo) extends DefaultProject(info) {
   val uf_version = "0.3.1"
-  
+	  	  
   // unfiltered
   lazy val uff = "net.databinder" %% "unfiltered-filter" % uf_version
   lazy val ufj = "net.databinder" %% "unfiltered-jetty" % uf_version
+  lazy val ufs = "net.databinder" %% "unfiltered-json" % uf_version
 
   // testing
   lazy val uf_spec = "net.databinder" %% "unfiltered-spec" % uf_version % "test"

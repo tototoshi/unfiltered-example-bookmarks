@@ -23,5 +23,5 @@ case class Bookmark(
 	if (user != null)
       Bookmark(uri, dateTime, shortDescription, longDescription, restricted, null).toString
     else
-      super.toString
+      this.toString
 }
