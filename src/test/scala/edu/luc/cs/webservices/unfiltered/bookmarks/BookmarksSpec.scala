@@ -16,12 +16,7 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
 
   // TODO update to match SUS
 	  
-  def setup = {
-    val userRepository = new InMemoryUserRepository
-    _.filter(new UserResource(userRepository))
-     .filter(new BookmarksResource(userRepository))
-     .filter(new BookmarkResource(userRepository))
-  }
+  def setup = Main applyResources _ 
 
   // requested this to be added to Databinder as dispatch.Request.<<<
   def putForm(request: Request, values: Map[String, Any]): Request = request.next {

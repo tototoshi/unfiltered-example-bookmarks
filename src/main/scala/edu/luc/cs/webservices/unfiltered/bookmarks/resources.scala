@@ -9,7 +9,12 @@ import org.clapper.avsl.Logger
 import collection.immutable.Map
 import java.util.Date
 
-// TODO root resource
+object rootResource extends Planify ({
+  case GET(Path(Seg(Nil))) => Ok ~> ResponseString(
+      "To register: " +
+      "curl -X PUT -d 'user[password]=pass' -d 'user[email]=you@host' -d 'user[full_name]=Your%20Name' -v http://localhost:8080/users/you"
+      )
+})
 
 class UserResource(val userRepository: UserRepository) extends Plan {
   val logger = Logger(classOf[UserResource])
@@ -23,7 +28,7 @@ class UserResource(val userRepository: UserRepository) extends Plan {
     		        form("user[password]")(0), 
     		        form("user[email]")(0), 
     		        form("user[full_name]")(0))
-    userRepository.store(user)
+    userRepository store user
     user
   }
 
@@ -178,8 +183,13 @@ class BookmarkResource(val userRepository: UserRepository) extends Plan {
       }
       case _ => NotFound
     }
-    case req @ DELETE(Path(Seg(path))) => path match {
-      case "users" :: name :: "bookmarks" :: uri => {
+    case DELETE(req) => req match {
+      // TODO explore some kind of linear (monadic?) style for these successive checks 
+      // would cause problem with scoped bindings
+      // { case req @ DELETE(_) => req } andThen
+      // { case req @ Path(Seg("users" :: name :: "bookmarks" :: uri)) => req } andThen
+      // { case req @ BasicAuth(...) =>  
+      case Path(Seg("users" :: name :: "bookmarks" :: uri)) => {
         logger.debug("DELETE /users/%s/bookmarks/%s".format(name, uri))
     	userRepository.findByName(name) match {
           case Some(user) => req match {
