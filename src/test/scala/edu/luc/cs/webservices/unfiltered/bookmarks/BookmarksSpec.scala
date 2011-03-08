@@ -1,6 +1,7 @@
 package edu.luc.cs.webservices.unfiltered.bookmarks
 
 import collection.immutable.{Map => IMap}
+import java.net.URLEncoder
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.HttpPut
 import org.apache.http.entity.StringEntity
@@ -14,8 +15,6 @@ import dispatch._
 
 object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
 
-  // TODO update to match SUS
-	  
   def setup = Main applyResources _ 
 
   // requested this to be added to Databinder as dispatch.Request.<<<
@@ -23,23 +22,25 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
     val m = new HttpPut
     m setEntity new UrlEncodedFormEntity(Http.map2ee(values), request.defaultCharset)
     Request.mimic(m)_
-  }    
-  
-  val user = "blah"
-  val user2 = "blah2"
+  }
+    
+  def enc = URLEncoder.encode(_: String, Request.factoryCharset)
+    	
+  val user1 = "user1"
+  val user2 = "user2"
 
   val http = new Http
 
   "The example app" should {
 
-    "find something useful at root" in {
+    "provide something useful at root" in {
       val status = try {
         http x (host as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 200
     }
 
-    "find no user that has not been created" in {
+    "have no user that has not been created" in {
       val status = try {
         http x (host / "users" / user2 as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
@@ -47,48 +48,55 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
     }
 
     "allow unauthenticated creation below root" in {
-      val form = Map("user[password]" -> "blah", 
+      val form = Map("user[password]" -> user1, 
     		  		 "user[email]" -> "laufer@cs.luc.edu",
     		  		 "user[full_name]" -> "Konstantin Laufer")  	
       val status = try {
-        http x (putForm(host / "users" / user, form) as_str) { case (code, _, _, _) => code }
+        http x (putForm(host / "users" / user1, form) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 201
     }
 
-    "find the user that has been created" in {
+    "expose the user that has been created" in {
       val status = try {
-        http x (host / "users" / user as_str) { case (code, _, _, _) => code }
+        http x (host / "users" / user1 as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 200
     }
 
-    "find an empty list of bookmarks" in {
+    "expose an empty list of bookmarks" in {
       println()
       val status = try {
-        http x (host / "users" / user / "bookmarks" as_str) { case (code, _, _, _) => code }
+        http x (host / "users" / user1 / "bookmarks" as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 200
     }
-//      val form = Map("bookmark[short_description]=Loyola'   -d 'bookmark[long_description]=Loyola%20home%20page' -d 'bookmark[restrict]=false'     	
 
     "allow authenticated bookmark creation" in {
+      val form = Map("bookmark[short_description]" -> "etl@luc",
+    		         "bookmark[long_description]" -> "Loyola Emerging Technologies Lab",
+    		         "bookmark[restrict]" -> "false")    		        
       val status = try {
-        http x (host / "users" / user / "bookmarks/" as_str) { case (code, _, _, _) => code }
+        http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/", form) 
+          as_! (user1, user1) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
-      status must_== 200
+      status must_== 201
     }
     
-    "require authentication for deletion" in {
+    "allow authenticated creation of a private bookmark" in {
+      fail("not yet implemented")
+    }
+    
+    "allow authentication for deletion" in {
       val status = try {
-        http x ((host / "users" / user DELETE) as_str) { case (code, _, _, _) => code }
+        http x ((host / "users" / user1 DELETE) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 401
     }
 
     "allow authenticated deletion" in {
       val status = try {
-        http x ((host / "users" / user DELETE) as_! (user, user) as_str) { case (code, _, _, _) => code }
+        http x ((host / "users" / user1 DELETE) as_! (user1, user1) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 204
     }

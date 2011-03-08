@@ -8,8 +8,10 @@ case class User(
   password: String, 
   email: String, 
   fullName: String, 
-  val bookmarks: Map[String, Bookmark] = Map.empty
-)
+  val bookmarks: Map[String, Bookmark] = Map empty
+) {
+  override def toString = "User(" + name + ", " + email + ", " + fullName + ")"
+}
 
 case class Bookmark(
   uri: String, 
@@ -19,9 +21,7 @@ case class Bookmark(
   restricted: Boolean, 
   val user: User
 ) {
-  override def toString =
-	if (user != null)
-      Bookmark(uri, dateTime, shortDescription, longDescription, restricted, null).toString
-    else
-      this.toString
+  override def toString = "Bookmark(" + uri + ", " + dateTime + ", " + 
+  							shortDescription + ", " + longDescription + ", " + 
+  							restricted + ")"
 }

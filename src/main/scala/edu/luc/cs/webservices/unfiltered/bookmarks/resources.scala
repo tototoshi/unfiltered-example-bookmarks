@@ -41,31 +41,26 @@ class UserResource(val userRepository: UserRepository) extends Plan {
         case _ => NotFound
       }
     }
-    case req @ PUT(Path(Seg("users" :: name :: Nil))) => {
+    
+    case req @ PUT(Path(Seg("users" :: name :: Nil))) => try {
       logger.debug("PUT /users/%s" format name)
       userRepository.findByName(name) match {
         case Some(user) => req match {
-          case BasicAuth(u, p) if verify(u, p, user) => req match {
-            case Params(form) => {
-              try {
-                storeUserFromForm(name, form)
-                NoContent
-              } catch { case _ => BadRequest }
-            }
-            case _ => BadRequest
+          case BasicAuth(u, p) if verify(u, p, user) => {
+            val Params(form) = req 
+            storeUserFromForm(name, form)
+            NoContent
           }
           case _ => Fail(name)
         }
-        case _ => req match {
-          case Params(form) => {
-            try {
-              val user = storeUserFromForm(name, form)
-              Created ~> ResponseString(user.toString)
-            } catch { case _ => BadRequest }
-          }
+        case _ => {
+          val Params(form) = req
+          val user = storeUserFromForm(name, form)
+          Created ~> ResponseString(user.toString)
         }
       }
-    }
+    } catch { case _ => BadRequest }
+    
     case req @ DELETE(Path(Seg("users" :: name :: Nil))) => {
       logger.debug("DELETE /users/%s" format name)
       userRepository.findByName(name) match {
@@ -114,8 +109,6 @@ class BookmarkResource(val userRepository: UserRepository) extends Plan {
   def verify(u: String, p: String, user: User) = authSvc.verify(u, p) && user.name == u
   def Fail(name: String) = Unauthorized ~> WWWAuthenticate("""Basic realm="/""" + name + "\"")
 
-  def uriToString(uri: Seq[String]) = uri.mkString("/")
-  
   def storeBookmarkFromForm(name: String, uri: String, form: Map[String, Seq[String]]) = {
 	val user = userRepository.findByName(name).get
     val bookmark = Bookmark(uri, 
@@ -129,82 +122,46 @@ class BookmarkResource(val userRepository: UserRepository) extends Plan {
   }
 
   def intent = {
-    case req @ GET(Path(Seg(path))) => path match {
-      case "users" :: name :: "bookmarks" :: uri => {
-        logger.debug("GET /users/%s/bookmarks/%s".format(name, uri))
-        val uriString = uriToString(uri)
-        userRepository.findByName(name) match {
-          case Some(user) => {
+    case req @ GET(Path(Seg("users" :: name :: "bookmarks" :: uri))) => try {
+      val uriString = uri.mkString("/")
+      logger.debug("GET /users/%s/bookmarks/%s".format(name, uriString))
+      val Some(user) = userRepository.findByName(name)
+      val Some(bookmark) = user.bookmarks.get(uriString)
+      val true = bookmark.restricted || { val BasicAuth(u, p) = req ; verify(u, p, user) }
+      Ok ~> ResponseString(bookmark.toString)
+    } catch { case _ => NotFound }
+
+    case req @ PUT(Path(Seg("users" :: name :: "bookmarks" :: uri))) => try {
+      val uriString = uri.mkString("/")
+      logger.debug("PUT /users/%s/bookmarks/%s".format(name, uriString))
+      val Some(user) = userRepository.findByName(name)
+      req match {
+        case BasicAuth(u, p) if verify(u, p, user) => {
+          val Params(form) = req
+          try { 
             user.bookmarks.get(uriString) match {
-              case Some(bookmark) => {
-                val authorized = ! bookmark.restricted || (req match {
-                  case BasicAuth(u, p) if verify(u, p, user) => true
-                  case _ => false
-                })
-                if (authorized)
-                  // TODO representation based on content negotiation
-    	          Ok ~> ResponseString(bookmark.toString)
-                else
-                  NotFound
-              }
-              case _ => NotFound
-            }
-          }
-          case _ => NotFound
-        }
-      }
-      case _ => NotFound
-    }
-    case req @ PUT(Path(Seg(path))) => path match {
-      case "users" :: name :: "bookmarks" :: uri => {
-        logger.debug("PUT /users/%s/bookmarks/%s".format(name, uri))
-        val uriString = uriToString(uri)
-        userRepository.findByName(name) match {
-          case Some(user) => req match {
-            case BasicAuth(u, p) if verify(u, p, user) => req match { 
-        	  case Params(form) => user.bookmarks.get(uriString) match {
-        	    case Some(bookmark) =>
-                  try {
-        	        storeBookmarkFromForm(name, uriString, form)
-        	        NoContent
-                  } catch { case _ => BadRequest }
-                case _ => 
-                  try {
-        	        val bookmark = storeBookmarkFromForm(name, uriString, form)
-        	        Created ~> ResponseString(bookmark.toString)
-                  } catch { case _ => BadRequest }
+        	  case Some(bookmark) => {
+        	 	storeBookmarkFromForm(name, uriString, form)
+        	 	NoContent
         	  }
-        	  case _ => BadRequest
+              case _ => {
+	        	val bookmark = storeBookmarkFromForm(name, uriString, form)
+            	Created ~> ResponseString(bookmark.toString)
+              }
             }
-            case _ => NotFound
-          }
-          case _ => NotFound
+          } catch { case _ => BadRequest }
         }
+        case _ => Fail(name)
       }
-      case _ => NotFound
-    }
-    case DELETE(req) => req match {
-      // TODO explore some kind of linear (monadic?) style for these successive checks 
-      // would cause problem with scoped bindings
-      // { case req @ DELETE(_) => req } andThen
-      // { case req @ Path(Seg("users" :: name :: "bookmarks" :: uri)) => req } andThen
-      // { case req @ BasicAuth(...) =>  
-      case Path(Seg("users" :: name :: "bookmarks" :: uri)) => {
-        logger.debug("DELETE /users/%s/bookmarks/%s".format(name, uri))
-    	userRepository.findByName(name) match {
-          case Some(user) => req match {
-    	    case BasicAuth(u, p) if verify(u, p, user) => {
-    	      user.bookmarks.remove(uriToString(uri)) match {
-    	        case Some(_) => NoContent
-    	        case _ => NotFound
-    	      }
-    	    }
-    	    case _ => NotFound
-          }
-          case _ => NotFound
-    	}
-      }
-      case _ => NotFound
-    }
+    } catch { case _ => NotFound }
+
+    case req @ DELETE(Path(Seg("users" :: name :: "bookmarks" :: uri))) => try {
+      val uriString = uri.mkString("/")
+      logger.debug("DELETE /users/%s/bookmarks/%s".format(name, uriString))
+      val Some(user) = userRepository.findByName(name)
+      val true = { val BasicAuth(u, p) = req ; verify(u, p, user) }
+      val Some(_) = user.bookmarks.remove(uriString)
+      NoContent
+    } catch { case _ => NotFound }
   }
 }

@@ -1,3 +1,10 @@
+Abstract
+
+A fairly complete example of a web service with two levels of CRUD and 
+authentication. Intended to be fully compatible (observationally equivalent)
+with the Java/Restlet version of the bookmarks example from RESTful Web 
+Services by Richardson and Ruby.
+
 Languages
 
 Scala 2.8.1
