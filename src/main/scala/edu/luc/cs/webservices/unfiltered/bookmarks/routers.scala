@@ -9,15 +9,18 @@ import org.clapper.avsl.Logger
 import collection.immutable.Map
 import java.util.Date
 
-object rootResource extends Planify ({
-  case GET(Path(Seg(Nil))) => Ok ~> ResponseString(
+object rootRouter extends Planify ({
+  case GET(Path(Seg(Nil))) => {
+	Logger(rootRouter getClass).debug("GET /")
+	Ok ~> ResponseString(
       "To register: " +
       "curl -X PUT -d 'user[password]=pass' -d 'user[email]=you@host' -d 'user[full_name]=Your%20Name' -v http://localhost:8080/users/you"
-      )
+    )
+  }
 })
 
-class UserResource(val userRepository: UserRepository) extends Plan {
-  val logger = Logger(classOf[UserResource])
+class UserRouter(val userRepository: UserRepository) extends Plan {
+  val logger = Logger(classOf[UserRouter])
 
   val authSvc = new UserRepositoryAuthService(userRepository)
   def verify(u: String, p: String, user: User) = authSvc.verify(u, p) && user.name == u
@@ -77,8 +80,8 @@ class UserResource(val userRepository: UserRepository) extends Plan {
   }
 }
 
-class BookmarksResource(val userRepository: UserRepository) extends Plan {
-  val logger = Logger(classOf[BookmarksResource])
+class BookmarksRouter(val userRepository: UserRepository) extends Plan {
+  val logger = Logger(classOf[BookmarksRouter])
 
   val authSvc = new UserRepositoryAuthService(userRepository)
   def verify(u: String, p: String, user: User) = authSvc.verify(u, p) && user.name == u
@@ -102,8 +105,8 @@ class BookmarksResource(val userRepository: UserRepository) extends Plan {
   }
 }
 
-class BookmarkResource(val userRepository: UserRepository) extends Plan {
-  val logger = Logger(classOf[BookmarkResource])
+class BookmarkRouter(val userRepository: UserRepository) extends Plan {
+  val logger = Logger(classOf[BookmarkRouter])
 
   val authSvc = new UserRepositoryAuthService(userRepository)
   def verify(u: String, p: String, user: User) = authSvc.verify(u, p) && user.name == u

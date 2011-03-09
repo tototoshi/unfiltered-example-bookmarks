@@ -15,7 +15,7 @@ import dispatch._
 
 object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
 
-  def setup = Main applyResources _ 
+  def setup = Main applyRouters _ 
 
   // requested this to be added to Databinder as dispatch.Request.<<<
   def putForm(request: Request, values: Map[String, Any]): Request = request.next {
