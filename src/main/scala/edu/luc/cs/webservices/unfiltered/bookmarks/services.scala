@@ -24,7 +24,7 @@ trait AuthService {
 
 class UserRepositoryAuthService(val userRepository: UserRepository) extends AuthService {
   def verify(login: String, password: String) = 
-	userRepository.findByName(login) match {
+	userRepository findByName login match {
     case Some(user) => user.password == password
     case _ => false
   }

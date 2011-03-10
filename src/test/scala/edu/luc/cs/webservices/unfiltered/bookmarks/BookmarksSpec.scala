@@ -15,16 +15,16 @@ import dispatch._
 
 object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
 
-  def setup = Main applyRouters _ 
+  def setup = Main applyPlans _ 
 
   // requested this to be added to Databinder as dispatch.Request.<<<
   def putForm(request: Request, values: Map[String, Any]): Request = request.next {
     val m = new HttpPut
-    m setEntity new UrlEncodedFormEntity(Http.map2ee(values), request.defaultCharset)
+    m setEntity new UrlEncodedFormEntity(Http map2ee values, request defaultCharset)
     Request.mimic(m)_
   }
     
-  def enc = URLEncoder.encode(_: String, Request.factoryCharset)
+  def enc = URLEncoder encode (_: String, Request factoryCharset)
     	
   val user1 = "user1"
   val user2 = "user2"
