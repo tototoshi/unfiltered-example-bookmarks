@@ -11,7 +11,7 @@ object Main {
   val logger = Logger(Main getClass)
   val userRepository = new InMemoryUserRepository
   val plans = Seq(rootPlan, 
-                  new UserPlan(userRepository),
+                  new UserPlan(userRepository, userRenderer),
                   new BookmarksPlan(userRepository),
                   new BookmarkPlan(userRepository))
   def applyPlans = plans.foldLeft(_: Server)(_ filter _)

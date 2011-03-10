@@ -19,12 +19,15 @@ object rootPlan extends Planify ({
   }
 })
 
-class UserPlan(val userRepository: UserRepository) extends Plan {
-  val logger = Logger(classOf[UserPlan])
-
+abstract class UserRepositoryPlan(val userRepository: UserRepository) extends Plan {
   val authSvc = new UserRepositoryAuthService(userRepository)
   def verify(u: String, p: String, user: User) = authSvc.verify(u, p) && user.name == u
   def Fail(name: String) = Unauthorized ~> WWWAuthenticate("""Basic realm="/""" + name + "\"")
+}
+
+class UserPlan(override val userRepository: UserRepository, val renderer: Renderer[User]) 
+extends UserRepositoryPlan(userRepository) {
+  val logger = Logger(classOf[UserPlan])
 
   def storeUserFromForm(name: String, form: Map[String, Seq[String]]) = {
     val user = User(name, 
@@ -36,12 +39,10 @@ class UserPlan(val userRepository: UserRepository) extends Plan {
   }
 
   def intent = {
-    case GET(Path(Seg("users" :: name :: Nil))) => {
+    case req @ GET(Path(Seg("users" :: name :: Nil))) => {
       logger.debug("GET /users/%s" format name)
       userRepository findByName name match {
-        // TODO representation based on content negotiation
-    	//case Some(user) => Ok ~> userRenderer(user, userRenderer preferredMediaType req)
-        case Some(user) => Ok ~> ResponseString(user toString)
+        case Some(user) => Ok ~> renderer(req)(user)
         case _ => NotFound
       }
     }
@@ -81,12 +82,9 @@ class UserPlan(val userRepository: UserRepository) extends Plan {
   }
 }
 
-class BookmarksPlan(val userRepository: UserRepository) extends Plan {
+class BookmarksPlan(override val userRepository: UserRepository)
+extends UserRepositoryPlan(userRepository) {
   val logger = Logger(classOf[BookmarksPlan])
-
-  val authSvc = new UserRepositoryAuthService(userRepository)
-  def verify(u: String, p: String, user: User) = authSvc.verify(u, p) && user.name == u
-  def Fail(name: String) = Unauthorized ~> WWWAuthenticate("""Basic realm="/""" + name + "\"")
 
   def intent = {
     case req @ GET(Path(Seg("users" :: name :: "bookmarks" :: Nil))) => {
@@ -106,12 +104,9 @@ class BookmarksPlan(val userRepository: UserRepository) extends Plan {
   }
 }
 
-class BookmarkPlan(val userRepository: UserRepository) extends Plan {
+class BookmarkPlan(override val userRepository: UserRepository)
+extends UserRepositoryPlan(userRepository) {
   val logger = Logger(classOf[BookmarkPlan])
-
-  val authSvc = new UserRepositoryAuthService(userRepository)
-  def verify(u: String, p: String, user: User) = authSvc.verify(u, p) && user.name == u
-  def Fail(name: String) = Unauthorized ~> WWWAuthenticate("""Basic realm="/""" + name + "\"")
 
   def storeBookmarkFromForm(name: String, uri: String, form: Map[String, Seq[String]]) = {
 	val user = userRepository findByName name get
