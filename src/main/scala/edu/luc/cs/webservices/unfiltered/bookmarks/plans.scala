@@ -61,7 +61,7 @@ extends UserRepositoryPlan(userRepository) {
         case _ => {
           val Params(form) = req
           val user = storeUserFromForm(name, form)
-          Created ~> ResponseString(user toString)
+          Created ~> renderer(req)(user)
         }
       }
     } catch { case _ => BadRequest }
@@ -71,7 +71,7 @@ extends UserRepositoryPlan(userRepository) {
       userRepository findByName name match {
         case Some(user) => req match {
           case BasicAuth(u, p) if verify(u, p, user) => {
-            assert(userRepository.remove(name).isDefined)
+        	userRepository.remove(name)
             NoContent
           }
           case _ => Fail(name)
@@ -158,7 +158,8 @@ extends UserRepositoryPlan(userRepository) {
       val uriString = uri mkString "/"
       logger.debug("DELETE /users/%s/bookmarks/%s" format(name, uriString))
       val Some(user) = userRepository findByName name
-      val true = { val BasicAuth(u, p) = req ; verify(u, p, user) }
+      val BasicAuth(u, p) = req
+      val true = verify(u, p, user)
       val Some(_) = user.bookmarks remove uriString
       NoContent
     } catch { case _ => NotFound }
