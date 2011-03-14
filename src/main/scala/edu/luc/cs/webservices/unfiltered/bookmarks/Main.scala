@@ -9,11 +9,11 @@ import org.clapper.avsl.Logger
 /** embedded server */
 object Main {
   val logger = Logger(Main getClass)
-  val userRepository = new InMemoryUserRepository
+  val repository = new ThreadSafeBookmarksRepository(new InMemoryBookmarksRepository)
   val plans = Seq(rootPlan, 
-                  new UserPlan(userRepository, userRenderer),
-                  new BookmarksPlan(userRepository),
-                  new BookmarkPlan(userRepository))
+                  new UserPlan(repository , userRenderer),
+                  new BookmarksPlan(repository),
+                  new BookmarkPlan(repository))
   def applyPlans = plans.foldLeft(_: Server)(_ filter _)
   
   def main(args: Array[String]) {
