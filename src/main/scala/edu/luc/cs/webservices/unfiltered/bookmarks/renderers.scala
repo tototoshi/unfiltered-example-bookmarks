@@ -11,7 +11,7 @@ trait Renderer[T] {
 object userRenderer extends Renderer[User] {
   implicit val formats = net.liftweb.json.DefaultFormats
   def apply[R](req: HttpRequest[R])(user: User) = req match {
-	// TODO remove password and think about bookmarks
+    // TODO remove password and think about bookmarks
     case Accepts.Json(_) => JsonContent ~> ResponseString(write(user))
     case Accepts.Html(_) => HtmlContent ~> {
       val langs = req match { case AcceptLanguage(langs) => langs ; case _ => List empty }

@@ -49,8 +49,8 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
 
     "allow unauthenticated creation below root" in {
       val form = Map("user[password]" -> user1, 
-    		  		 "user[email]" -> "laufer@cs.luc.edu",
-    		  		 "user[full_name]" -> "Konstantin Laufer")  	
+                     "user[email]" -> "laufer@cs.luc.edu",
+                     "user[full_name]" -> "Konstantin Laufer")  	
       val status = try {
         http x (putForm(host / "users" / user1, form) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
@@ -74,8 +74,8 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
 
     "allow authenticated bookmark creation" in {
       val form = Map("bookmark[short_description]" -> "etl@luc",
-    		         "bookmark[long_description]" -> "Loyola Emerging Technologies Lab",
-    		         "bookmark[restrict]" -> "false")    		        
+                     "bookmark[long_description]" -> "Loyola Emerging Technologies Lab",
+                     "bookmark[restrict]" -> "false")    		        
       val status = try {
         http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/", form) 
           as_! (user1, user1) as_str) { case (code, _, _, _) => code }
@@ -92,8 +92,8 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
     
     "allow authenticated creation of a private bookmark" in {
       val form = Map("bookmark[short_description]" -> "cs@luc",
-    		         "bookmark[long_description]" -> "Loyola CS Dept",
-    		         "bookmark[restrict]" -> "true")    		        
+                     "bookmark[long_description]" -> "Loyola CS Dept",
+                     "bookmark[restrict]" -> "true")    		        
       val status = try {
         http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.cs.luc.edu/", form) 
           as_! (user1, user1) as_str) { case (code, _, _, _) => code }

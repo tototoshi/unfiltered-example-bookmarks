@@ -8,7 +8,7 @@ import scala.concurrent.stm._
 
 class UserRepositoryAuthService(val repository: BookmarksRepository) extends AuthService {
   def verify(login: String, password: String) =
-	repository findUser login match {
+    repository findUser login match {
     case Some(user) => user.password == password
     case _ => false
   }
@@ -20,21 +20,21 @@ class InMemoryBookmarksRepository extends BookmarksRepository {
 
   override def findUser(name: String) = users.get(name)
   override def storeUser(user: User) = {
-	bookmarks.put(user.name, new HashMap)
-	users.put(user.name, user)
+    bookmarks.put(user.name, new HashMap)
+    users.put(user.name, user)
   }
   override def removeUser(name: String) = {
     bookmarks.remove(name)
-	users.remove(name)
+    users.remove(name)
   }
   override def findBookmarks(name: String) = bookmarks get name match {
     // TODO make this conversion O(1) 
-	case Some(bs) => Some(IMap(bs.toList: _*))
-	case None => None
+    case Some(bs) => Some(IMap(bs.toList: _*))
+    case None => None
   }	
   override def findBookmark(name: String, uri: String) = bookmarks get name match {
-	case Some(bs) => bs get uri
-	case None => None
+    case Some(bs) => bs get uri
+    case None => None
   }
   override def storeBookmark(name: String, bookmark: Bookmark) =
     bookmarks(name).put(bookmark.uri, bookmark)
@@ -45,37 +45,35 @@ class InMemoryBookmarksRepository extends BookmarksRepository {
 trait STMBookmarksRepository extends BookmarksRepository {
   val concurrency = Ref(0)
   val debug = false
-  
+
   abstract override def findUser(name: String) = atomic { implicit txn => {
-	  if (debug) {
-	    concurrency += 1
-        if (concurrency() > 1) {
-    	  throw new RuntimeException("STM bug?")
-        }
-	  }
-      val result = super.findUser(name)
-	  if (debug) concurrency -= 1
-      result
+    if (debug) {
+      concurrency += 1
+      if (concurrency() > 1) throw new RuntimeException("STM bug?")
     }
+    val result = super.findUser(name)
+    if (debug) concurrency -= 1
+    result
+  }
   }
   abstract override def storeUser(user: User) = 
-	atomic { implicit txn => super.storeUser(user) }
+    atomic { implicit txn => super.storeUser(user) }
   abstract override def removeUser(name: String) = 
-	atomic { implicit txn => super.removeUser(name) }
+    atomic { implicit txn => super.removeUser(name) }
   abstract override def findBookmarks(name: String) = 
-	atomic { implicit txn => super.findBookmarks(name) }
+    atomic { implicit txn => super.findBookmarks(name) }
   abstract override def findBookmark(name: String, uri: String) = 
-	atomic { implicit txn => super.findBookmark(name, uri) }
+    atomic { implicit txn => super.findBookmark(name, uri) }
   abstract override def storeBookmark(name: String, bookmark: Bookmark) = 
-	atomic { implicit txn => super.storeBookmark(name, bookmark) }
+    atomic { implicit txn => super.storeBookmark(name, bookmark) }
   abstract override def removeBookmark(name: String, uri: String) = 
-	atomic { implicit txn => super.removeBookmark(name, uri) }
+    atomic { implicit txn => super.removeBookmark(name, uri) }
 }
 
 trait ActorBookmarksRepository extends BookmarksRepository {
-	
+
   // TODO try this using reflection
-	
+
   case class FindUser(name: String)
   case class StoreUser(user: User)
   case class RemoveUser(name: String)
@@ -83,20 +81,18 @@ trait ActorBookmarksRepository extends BookmarksRepository {
   case class FindBookmark(name: String, uri: String)
   case class StoreBookmark(name: String, bookmark: Bookmark)
   case class RemoveBookmark(name: String, uri: String)
-	
+
   def ia = actor {
     loop {
       react {
         case FindUser(n) => {
           if (debug) {
-    	    var c = 0
+            var c = 0
             atomic { implicit txn => { concurrency += 1 ; c = concurrency() } }
-            if (c > 1) {
-              throw new RuntimeException("Scala native actors bug?")
-            }
+            if (c > 1) throw new RuntimeException("Scala native actors bug?")
           }
           sender ! { super.findUser(n) }
-	      if (debug) atomic { implicit txn => concurrency -= 1 }
+          if (debug) atomic { implicit txn => concurrency -= 1 }
         }
         case StoreUser(u) => sender ! { super.storeUser(u) }
         case RemoveUser(n) => sender ! { super.removeUser(n) }
@@ -111,7 +107,7 @@ trait ActorBookmarksRepository extends BookmarksRepository {
   val concurrency = Ref(0)
   val debug = false
   def sync[R](msg: Any) = { ia ! msg ; self receive { case x: R => x } }
-  
+
   abstract override def findUser(name: String) = sync[Option[User]](FindUser(name))
   abstract override def storeUser(user: User) = sync[Option[User]](StoreUser(user))
   abstract override def removeUser(name: String) = sync[Option[User]](RemoveUser(name)) 

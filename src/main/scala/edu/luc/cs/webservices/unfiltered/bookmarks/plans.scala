@@ -11,8 +11,8 @@ import java.util.Date
 
 object rootPlan extends Planify ({
   case GET(Path(Seg(Nil))) => {
-	Logger(rootPlan getClass).debug("GET /")
-	Ok ~> ResponseString(
+    Logger(rootPlan getClass).debug("GET /")
+    Ok ~> ResponseString(
       "To register: " +
       "curl -X PUT -d 'user[password]=pass' -d 'user[email]=you@host' -d 'user[full_name]=Your%20Name' -v http://localhost:8080/users/you"
     )
@@ -31,9 +31,9 @@ extends BookmarksRepositoryPlan(repository) {
 
   def storeUserFromForm(name: String, form: Map[String, Seq[String]]) = {
     val user = User(name, 
-    		        form("user[password]")(0), 
-    		        form("user[email]")(0), 
-    		        form("user[full_name]")(0))
+                    form("user[password]")(0), 
+                    form("user[email]")(0), 
+                    form("user[full_name]")(0))
     repository.storeUser(user)
     user
   }
@@ -112,10 +112,10 @@ extends BookmarksRepositoryPlan(repository) {
 
   def storeBookmarkFromForm(name: String, uri: String, form: Map[String, Seq[String]]) = {
     val bookmark = Bookmark(uri, 
-    						new Date,
-    		                form("bookmark[short_description]")(0), 
-    		                form("bookmark[long_description]")(0), 
-    		                form("bookmark[restrict]")(0) toBoolean)
+                            new Date,
+                            form("bookmark[short_description]")(0), 
+                            form("bookmark[long_description]")(0), 
+                            form("bookmark[restrict]")(0) toBoolean)
     repository.storeBookmark(name, bookmark)
     bookmark
   }
@@ -160,12 +160,12 @@ extends BookmarksRepositoryPlan(repository) {
           val Params(form) = req
           try { 
             repository.findBookmark(name, uriString) match {
-        	  case Some(bookmark) => {
-        	 	storeBookmarkFromForm(name, uriString, form)
-        	 	NoContent
-        	  }
+              case Some(bookmark) => {
+                storeBookmarkFromForm(name, uriString, form)
+                NoContent
+              }
               case _ => {
-	        	val bookmark = storeBookmarkFromForm(name, uriString, form)
+                val bookmark = storeBookmarkFromForm(name, uriString, form)
             	Created ~> ResponseString(bookmark toString)
               }
             }
