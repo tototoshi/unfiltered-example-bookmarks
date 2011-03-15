@@ -57,7 +57,7 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
       status must_== 201
     }
 
-    "expose the user that has been created" in {
+    "allow retrieval of the user that has been created" in {
       val status = try {
         http x (host / "users" / user1 as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
@@ -83,7 +83,7 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
       status must_== 201
     }
     
-    "expose the created bookmark" in {
+    "allow retrieval of created bookmark" in {
       val status = try {
         http x (host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/" as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
@@ -91,7 +91,28 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
     }
     
     "allow authenticated creation of a private bookmark" in {
-      fail("not yet implemented")
+      val form = Map("bookmark[short_description]" -> "cs@luc",
+    		         "bookmark[long_description]" -> "Loyola CS Dept",
+    		         "bookmark[restrict]" -> "true")    		        
+      val status = try {
+        http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.cs.luc.edu/", form) 
+          as_! (user1, user1) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 201
+    }
+
+    "allow authenticated retrieval of private bookmark" in {
+      val status = try {
+        http x (host / "users" / user1 / "bookmarks" / "http://www.cs.luc.edu/" as_! (user1, user1) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 200
+    }
+    
+    "allow authenticated deletion of bookmark" in {
+      val status = try {
+        http x ((host / "users" / user1 / "bookmarks" / "http://www.cs.luc.edu/" DELETE) as_! (user1, user1) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 204
     }
     
     "allow authentication for deletion" in {
@@ -101,7 +122,7 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
       status must_== 401
     }
 
-    "allow authenticated deletion" in {
+    "allow authenticated deletion of user" in {
       val status = try {
         http x ((host / "users" / user1 DELETE) as_! (user1, user1) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
