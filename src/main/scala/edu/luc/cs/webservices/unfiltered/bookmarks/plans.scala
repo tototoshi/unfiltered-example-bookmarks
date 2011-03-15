@@ -126,9 +126,30 @@ extends BookmarksRepositoryPlan(repository) {
       logger.debug("GET /users/%s/bookmarks/%s" format(name, uriString))
       val Some(user) = repository findUser name
       val Some(bookmark) = repository.findBookmark(name, uriString)
-      val true = bookmark.restricted || { val BasicAuth(u, p) = req ; verify(u, p, user) }
+      val true = ! bookmark.restricted || { val BasicAuth(u, p) = req ; verify(u, p, user) }
       Ok ~> ResponseString(bookmark toString)
     } catch { case _ => NotFound }
+
+//    case req @ GET(Path(Seg("users" :: name :: "bookmarks" :: uri))) => {
+//      val uriString = uri mkString "/"
+//      logger.debug("GET /users/%s/bookmarks/%s" format(name, uriString))
+//      repository findUser name match {
+//    	case Some(user) => repository.findBookmark(name, uriString) match {
+//    	  case Some(bookmark) => {
+//    	 	val authorized = ! bookmark.restricted || (req match { 
+//    	 	  case BasicAuth(u, p) => verify(u, p, user)
+//    	 	  case _ => false  
+//    	 	})
+//    	 	if (authorized)
+//              Ok ~> ResponseString(bookmark toString)
+//            else
+//              NotFound
+//    	  }
+//    	  case _ => NotFound
+//    	}
+//    	case _ => NotFound
+//      }
+//    }
 
     case req @ PUT(Path(Seg("users" :: name :: "bookmarks" :: uri))) => try {
       val uriString = uri mkString "/"

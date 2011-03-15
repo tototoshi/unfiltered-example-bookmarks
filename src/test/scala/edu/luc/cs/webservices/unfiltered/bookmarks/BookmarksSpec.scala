@@ -83,6 +83,13 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
       status must_== 201
     }
     
+    "expose the created bookmark" in {
+      val status = try {
+        http x (host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/" as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 200
+    }
+    
     "allow authenticated creation of a private bookmark" in {
       fail("not yet implemented")
     }
