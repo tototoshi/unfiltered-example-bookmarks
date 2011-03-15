@@ -54,8 +54,7 @@ trait STMBookmarksRepository extends BookmarksRepository {
     val result = super.findUser(name)
     if (debug) concurrency -= 1
     result
-  }
-  }
+  }}
   abstract override def storeUser(user: User) = 
     atomic { implicit txn => super.storeUser(user) }
   abstract override def removeUser(name: String) = 
