@@ -8,6 +8,9 @@ class Project(info: ProjectInfo) extends DefaultProject(info) {
   lazy val ufj = "net.databinder" %% "unfiltered-jetty" % uf_version
   lazy val ufs = "net.databinder" %% "unfiltered-json" % uf_version
 
+  // stm
+  val scala_stm = "org.scala-tools" %% "scala-stm" % "0.2"
+  
   // testing
   lazy val uf_spec = "net.databinder" %% "unfiltered-spec" % uf_version % "test"
   lazy val jboss = "JBoss repository" at 
