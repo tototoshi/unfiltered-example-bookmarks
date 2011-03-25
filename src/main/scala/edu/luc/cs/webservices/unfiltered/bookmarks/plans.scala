@@ -66,7 +66,7 @@ abstract class BookmarksRepositoryPlan(val repository: BookmarksRepository) exte
       BasicAuth(u, p) <- Some(req)
       if name == u
       user <- repository findUser u
-      if user.name == u && authSvc.verify(u, p)
+      if verify(u, p, user)
     } yield user
   }
 }

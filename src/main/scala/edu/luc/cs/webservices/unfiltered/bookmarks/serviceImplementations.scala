@@ -12,7 +12,7 @@ class UserRepositoryAuthService(val repository: BookmarksRepository) extends Aut
   val logger = Logger(classOf[UserRepositoryAuthService])
   def verify(login: String, password: String) = {
     logger.debug("verifying %s" format login)
-    repository findUser login map { _.password == password } getOrElse false
+    repository findUser login map { verify(login, password, _) } getOrElse false
   }
   def verify(login: String, password: String, user: User) =
     user.name == login && user.password == password
