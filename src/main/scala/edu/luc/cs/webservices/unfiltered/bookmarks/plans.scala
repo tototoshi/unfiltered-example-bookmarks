@@ -61,15 +61,13 @@ abstract class BookmarksRepositoryPlan(val repository: BookmarksRepository) exte
     MatchingBasicAuth unapply req map { _ => true } getOrElse false
 
   object MatchingBasicAuth {
-    def unapply[R](req: HttpRequest[R]) = req match {
-      case Path(Seg("users" :: (name: String) :: _)) => for {
-        (u, p) <- BasicAuth unapply req
-        if name == u
-        user <- repository findUser u
-        if user.name == u && authSvc.verify(u, p)
-      } yield user
-      case _ => None
-    }
+    def unapply[R](req: HttpRequest[R]) = for {
+      Path(Seg("users" :: name :: _)) <- Some(req)
+      BasicAuth(u, p) <- Some(req)
+      if name == u
+      user <- repository findUser u
+      if user.name == u && authSvc.verify(u, p)
+    } yield user
   }
 }
 
@@ -103,7 +101,7 @@ class UserPlan(override val repository: BookmarksRepository, val renderer: Rende
       val Params(form) = req
       (for (user <- repository findUser name) yield
         (for {
-          (u, p) <- BasicAuth unapply req
+          BasicAuth(u, p) <- Some(req)
           if verify(u, p, user)
         } yield {
           storeUserFromForm(name, form)
@@ -115,7 +113,7 @@ class UserPlan(override val repository: BookmarksRepository, val renderer: Rende
 
     case req @ DELETE(Path(Seg("users" :: name :: Nil))) => {
       logger.debug("DELETE /users/%s" format name)
-      (for ((u, p) <- BasicAuth unapply req) yield
+      (for (BasicAuth(u, p) <- Some(req)) yield
         (for (user <- repository findUser name) yield 
           if (verify(u, p, user)) {
             repository.removeUser(name)
@@ -170,7 +168,7 @@ class BookmarkPlan(override val repository: BookmarksRepository)
     case req @ PUT(Path(Seg("users" :: name :: "bookmarks" :: uri))) => try {
       val uriString = uri mkString "/"
       logger.debug("PUT /users/%s/bookmarks/%s" format (name, uriString))
-      (for (_ <- MatchingBasicAuth unapply req) yield {
+      (for (MatchingBasicAuth(_) <- Some(req)) yield {
         val Params(form) = req
         (for (b <- storeBookmarkFromForm(name, uriString, form)) yield 
           Created ~> ResponseString(b toString)) getOrElse NoContent
@@ -181,7 +179,7 @@ class BookmarkPlan(override val repository: BookmarksRepository)
       val uriString = uri mkString "/"
       logger.debug("DELETE /users/%s/bookmarks/%s" format (name, uriString))
       (for {
-        _ <- MatchingBasicAuth unapply req
+        MatchingBasicAuth(_) <- Some(req)
         _ <- repository.removeBookmark(name, uriString)
       } yield NoContent) getOrElse NotFound  
     }
