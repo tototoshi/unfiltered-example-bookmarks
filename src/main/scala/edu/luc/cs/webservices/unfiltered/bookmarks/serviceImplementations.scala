@@ -1,5 +1,7 @@
 package edu.luc.cs.webservices.unfiltered.bookmarks
 
+import org.clapper.avsl.Logger
+
 import collection.mutable.{Map, HashMap}
 import collection.immutable.{Map => IMap}
 import actors.Actor
@@ -7,11 +9,13 @@ import actors.Actor._
 import scala.concurrent.stm._
 
 class UserRepositoryAuthService(val repository: BookmarksRepository) extends AuthService {
-  def verify(login: String, password: String) =
-    repository findUser login match {
-    case Some(user) => user.password == password
-    case _ => false
+  val logger = Logger(classOf[UserRepositoryAuthService])
+  def verify(login: String, password: String) = {
+    logger.debug("verifying %s" format login)
+    repository findUser login map { _.password == password } getOrElse false
   }
+  def verify(login: String, password: String, user: User) =
+    user.name == login && user.password == password
 }
 
 class InMemoryBookmarksRepository extends BookmarksRepository {
@@ -27,20 +31,18 @@ class InMemoryBookmarksRepository extends BookmarksRepository {
     bookmarks.remove(name)
     users.remove(name)
   }
-  override def findBookmarks(name: String) = bookmarks get name match {
-    // TODO make this conversion O(1) 
-    case Some(bs) => Some(IMap(bs.toList: _*))
-    case None => None
-  }	
-  override def findBookmark(name: String, uri: String) = bookmarks get name match {
-    case Some(bs) => bs get uri
-    case None => None
-  }
+  override def findBookmarks(name: String) = 
+    bookmarks get name map { _.toList } map { IMap(_: _*) }
+  override def findBookmark(name: String, uri: String) = 
+    bookmarks get name flatMap { _ get uri }
   override def storeBookmark(name: String, bookmark: Bookmark) =
     bookmarks(name).put(bookmark.uri, bookmark)
   override def removeBookmark(name: String, uri: String) =
     bookmarks(name).remove(uri)
 }
+
+// TODO CouchDb-based implementation: need to figure out way push all 
+// locking into CouchDb
 
 trait STMBookmarksRepository extends BookmarksRepository {
   val concurrency = Ref(0)
@@ -81,7 +83,7 @@ trait ActorBookmarksRepository extends BookmarksRepository {
   case class StoreBookmark(name: String, bookmark: Bookmark)
   case class RemoveBookmark(name: String, uri: String)
 
-  def ia = actor {
+  val ia = actor {
     loop {
       react {
         case FindUser(n) => {

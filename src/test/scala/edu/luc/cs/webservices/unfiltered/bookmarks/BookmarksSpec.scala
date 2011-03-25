@@ -47,14 +47,46 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
       status must_== 404
     }
 
-    "allow unauthenticated creation below root" in {
+   "complain about incomplete user creation form data" in {
       val form = Map("user[password]" -> user1, 
-                     "user[email]" -> "laufer@cs.luc.edu",
+                     "user[full_name]" -> "Koko Laufer")          
+      val status = try {
+        http x (putForm(host / "users" / user1, form) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 400
+    }
+
+    "allow unauthenticated user creation" in {
+      val form = Map("user[password]" -> user1, 
+                     "user[email]" -> "laufer AT cs DOT luc DOT edu",
                      "user[full_name]" -> "Konstantin Laufer")  	
       val status = try {
         http x (putForm(host / "users" / user1, form) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 201
+      // TODO check whether content is as expected
+    }
+
+   "disallow unauthenticated user update" in {
+      val form = Map("user[password]" -> user1, 
+                     "user[email]" -> "laufer AT acm DOT org",
+                     "user[full_name]" -> "Koko Laufer")          
+      val status = try {
+        http x (putForm(host / "users" / user1, form) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 401
+      // TODO check whether content is as expected
+    }
+
+   "disallow authenticated user update with wrong credentials" in {
+      val form = Map("user[password]" -> user1, 
+                     "user[email]" -> "laufer AT acm DOT org",
+                     "user[full_name]" -> "Koko Laufer")          
+      val status = try {
+        http x (putForm(host / "users" / user1, form) as_! (user1, user2) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 401
+      // TODO check whether content is as expected
     }
 
     "allow retrieval of the user that has been created" in {
@@ -62,32 +94,91 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
         http x (host / "users" / user1 as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 200
+      // TODO check whether content is as expected
     }
 
     "expose an empty list of bookmarks" in {
-      println()
       val status = try {
         http x (host / "users" / user1 / "bookmarks" as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 200
+      // TODO check whether content is as expected
     }
 
-    "allow authenticated bookmark creation" in {
+    "hide bookmark from unauthenticated creation" in {
       val form = Map("bookmark[short_description]" -> "etl@luc",
                      "bookmark[long_description]" -> "Loyola Emerging Technologies Lab",
                      "bookmark[restrict]" -> "false")    		        
       val status = try {
         http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/", form) 
+          as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 404
+    }
+    
+    "hide bookmark from authenticated creation with wrong credentials" in {
+      val form = Map("bookmark[short_description]" -> "etl@luc",
+                     "bookmark[long_description]" -> "Loyola Emerging Technologies Lab",
+                     "bookmark[restrict]" -> "false")                           
+      val status = try {
+        http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/", form) 
+          as_! (user1, user2) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 404
+    }
+
+    "allow authenticated bookmark creation" in {
+      val form = Map("bookmark[short_description]" -> "etl@luc",
+                     "bookmark[long_description]" -> "Loyola Emerging Technologies Lab",
+                     "bookmark[restrict]" -> "false")                           
+      val status = try {
+        http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/", form) 
           as_! (user1, user1) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 201
+      // TODO check whether content is as expected
+    }
+
+    "hide bookmark from unauthenticated update" in {
+      val form = Map("bookmark[short_description]" -> "etl@luc",
+                     "bookmark[long_description]" -> "Loyola ETL",
+                     "bookmark[restrict]" -> "false")                           
+      val status = try {
+        http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/", form) 
+          as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 404
     }
     
+    "hide bookmark from authenticated update with wrong credentials" in {
+      val form = Map("bookmark[short_description]" -> "etl@luc",
+                     "bookmark[long_description]" -> "Loyola ETL",
+                     "bookmark[restrict]" -> "false")                           
+      val status = try {
+        http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/", form) 
+          as_! (user1, user2) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 404
+    }
+
+    "allow authenticated bookmark update" in {
+      val form = Map("bookmark[short_description]" -> "etl@luc",
+                     "bookmark[long_description]" -> "Loyola ETL",
+                     "bookmark[restrict]" -> "false")                           
+      val status = try {
+        http x (putForm(host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/", form) 
+          as_! (user1, user1) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 204
+      // TODO check whether update has worked
+    }
+
     "allow retrieval of created bookmark" in {
       val status = try {
         http x (host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/" as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 200
+      // TODO check whether content is as expected
     }
     
     "allow authenticated creation of a private bookmark" in {
@@ -99,6 +190,7 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
           as_! (user1, user1) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 201
+      // TODO check whether content is as expected
     }
 
     "allow authenticated retrieval of private bookmark" in {
@@ -106,6 +198,59 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
         http x (host / "users" / user1 / "bookmarks" / "http://www.cs.luc.edu/" as_! (user1, user1) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 200
+      // TODO check whether content is as expected
+    }
+    
+    "hide private bookmark from authenticated retrieval with wrong credentials" in {
+      val status = try {
+        http x (host / "users" / user1 / "bookmarks" / "http://www.cs.luc.edu/" as_! (user1, user2) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 404
+    }
+    
+    "hide private bookmark from unauthenticated retrieval" in {
+      val status = try {
+        http x (host / "users" / user1 / "bookmarks" / "http://www.cs.luc.edu/" as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 404
+    }
+    
+    "expose limited list of bookmarks without authentication" in {
+      val status = try {
+        http x (host / "users" / user1 / "bookmarks" as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 200
+      // TODO check whether content is as expected
+    }
+
+    "expose complete list of bookmarks with authentication" in {
+      val status = try {
+        http x (host / "users" / user1 / "bookmarks" as_! (user1, user1) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 200
+      // TODO check whether content is as expected
+    }
+
+    "expose limited list of bookmarks with authentication with wrong credentials" in {
+      val status = try {
+        http x (host / "users" / user1 / "bookmarks" as_! (user2, user2) as_str) { case (code, a, b, c) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 200
+      // TODO check whether content is as expected
+    }
+
+    "hide bookmark from unauthenticated deletion" in {
+      val status = try {
+        http x ((host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/" DELETE) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 404
+    }
+    
+    "hide bookmark from authenticated deletion with wrong credentials" in {
+      val status = try {
+        http x ((host / "users" / user1 / "bookmarks" / "http://www.etl.luc.edu/" DELETE) as_! (user1, user2) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 404
     }
     
     "allow authenticated deletion of bookmark" in {
@@ -113,11 +258,19 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
         http x ((host / "users" / user1 / "bookmarks" / "http://www.cs.luc.edu/" DELETE) as_! (user1, user1) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 204
+      // TODO check whether deletion has worked
     }
     
-    "allow authentication for deletion" in {
+    "disallow unauthenticated deletion of user" in {
       val status = try {
         http x ((host / "users" / user1 DELETE) as_str) { case (code, _, _, _) => code }
+      } catch { case StatusCode(code, _) => code }
+      status must_== 401
+    }
+    
+    "disallow authenticated deletion of user with wrong credentials" in {
+      val status = try {
+        http x ((host / "users" / user1 DELETE) as_! (user1, user2) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 401
     }
@@ -127,6 +280,7 @@ object BookmarksSpec extends Specification with unfiltered.spec.jetty.Served {
         http x ((host / "users" / user1 DELETE) as_! (user1, user1) as_str) { case (code, _, _, _) => code }
       } catch { case StatusCode(code, _) => code }
       status must_== 204
+      // TODO check whether deletion has worked
     }
   }
 }

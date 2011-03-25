@@ -10,7 +10,7 @@ import org.clapper.avsl.Logger
 object Main {
   val logger = Logger(Main getClass)
   val repository = new InMemoryBookmarksRepository with STMBookmarksRepository
-  val plans = Seq(rootPlan, 
+  val plans = Seq(new RootPlan, 
                   new UserPlan(repository , userRenderer),
                   new BookmarksPlan(repository),
                   new BookmarkPlan(repository))
