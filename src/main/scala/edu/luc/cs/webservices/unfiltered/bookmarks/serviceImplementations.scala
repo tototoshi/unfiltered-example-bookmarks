@@ -8,14 +8,12 @@ import actors.Actor
 import actors.Actor._
 import scala.concurrent.stm._
 
-class UserRepositoryAuthService(val repository: BookmarksRepository) extends AuthService {
-  val logger = Logger(classOf[UserRepositoryAuthService])
-  def verify(login: String, password: String) = {
+class SimpleLocalAuthService extends AuthService {
+  val logger = Logger(classOf[SimpleLocalAuthService])
+  def verify(login: String, password: String, user: User) = {
     logger.debug("verifying %s" format login)
-    repository findUser login map { verify(login, password, _) } getOrElse false
-  }
-  def verify(login: String, password: String, user: User) =
     user.name == login && user.password == password
+  }
 }
 
 class InMemoryBookmarksRepository extends BookmarksRepository {

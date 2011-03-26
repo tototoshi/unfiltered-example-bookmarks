@@ -54,19 +54,19 @@ class RootPlan extends Plan {
 }
   
 abstract class BookmarksRepositoryPlan(val repository: BookmarksRepository) extends Plan {
-  val authSvc = new UserRepositoryAuthService(repository)
+  val authSvc = new SimpleLocalAuthService
   def Fail(name: String) = Unauthorized ~> WWWAuthenticate("""Basic realm="/""" + name + "\"")
-  def verify(u: String, p: String, user: User) = authSvc.verify(u, p, user)
-  def authenticated[R](req: HttpRequest[R]) = 
-    MatchingBasicAuth unapply req map { _ => true } getOrElse false
+  def verifyLocally(u: String, p: String, user: User) = authSvc.verify(u, p, user)
+  def basicAuthVerified[R](req: HttpRequest[R]) = 
+    BasicAuthVerified unapply req map { _ => true } getOrElse false
 
-  object MatchingBasicAuth {
+  object BasicAuthVerified {
     def unapply[R](req: HttpRequest[R]) = for {
       Path(Seg("users" :: name :: _)) <- Some(req)
       BasicAuth(u, p) <- Some(req)
       if name == u
       user <- repository findUser u
-      if verify(u, p, user)
+      if verifyLocally(u, p, user)
     } yield user
   }
 }
@@ -102,7 +102,7 @@ class UserPlan(override val repository: BookmarksRepository, val renderer: Rende
       (for (user <- repository findUser name) yield
         (for {
           BasicAuth(u, p) <- Some(req)
-          if verify(u, p, user)
+          if verifyLocally(u, p, user)
         } yield {
           storeUserFromForm(name, form)
           NoContent
@@ -115,7 +115,7 @@ class UserPlan(override val repository: BookmarksRepository, val renderer: Rende
       logger.debug("DELETE /users/%s" format name)
       (for (BasicAuth(u, p) <- Some(req)) yield
         (for (user <- repository findUser name) yield 
-          if (verify(u, p, user)) {
+          if (verifyLocally(u, p, user)) {
             repository.removeUser(name)
             NoContent
           } else
@@ -135,7 +135,7 @@ class BookmarksPlan(override val repository: BookmarksRepository)
       logger.debug("GET /users/%s/bookmarks" format name)
       // TODO representation based on content negotiation
       (for (bs <- repository findBookmarks name) yield {
-        val authorized = ! bs.exists(_._2.restricted) || authenticated(req)
+        val authorized = ! bs.exists(_._2.restricted) || basicAuthVerified(req)
         Ok ~> ResponseString((if (authorized) bs else bs filter { ! _._2.restricted }) toString)
       }) getOrElse NotFound
     }
@@ -161,14 +161,14 @@ class BookmarkPlan(override val repository: BookmarksRepository)
       logger.debug("GET /users/%s/bookmarks/%s" format (name, uriString))
       (for {
         b <- repository findBookmark(name, uriString)
-        if ! b.restricted || authenticated(req)
+        if ! b.restricted || basicAuthVerified(req)
        } yield Ok ~> ResponseString(b toString)) getOrElse NotFound
     }
     
     case req @ PUT(Path(Seg("users" :: name :: "bookmarks" :: uri))) => try {
       val uriString = uri mkString "/"
       logger.debug("PUT /users/%s/bookmarks/%s" format (name, uriString))
-      (for (MatchingBasicAuth(_) <- Some(req)) yield {
+      (for (BasicAuthVerified(_) <- Some(req)) yield {
         val Params(form) = req
         (for (b <- storeBookmarkFromForm(name, uriString, form)) yield 
           Created ~> ResponseString(b toString)) getOrElse NoContent
@@ -179,7 +179,7 @@ class BookmarkPlan(override val repository: BookmarksRepository)
       val uriString = uri mkString "/"
       logger.debug("DELETE /users/%s/bookmarks/%s" format (name, uriString))
       (for {
-        MatchingBasicAuth(_) <- Some(req)
+        BasicAuthVerified(_) <- Some(req)
         _ <- repository.removeBookmark(name, uriString)
       } yield NoContent) getOrElse NotFound  
     }

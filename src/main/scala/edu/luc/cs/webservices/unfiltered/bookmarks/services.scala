@@ -3,7 +3,6 @@ package edu.luc.cs.webservices.unfiltered.bookmarks
 import collection.immutable.{Map => IMap}
 
 trait AuthService {
-  def verify(login: String, password: String): Boolean
   def verify(login: String, password: String, user: User): Boolean
 }
 
