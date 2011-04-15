@@ -3,6 +3,7 @@ package edu.luc.cs.webservices.unfiltered.bookmarks
 import unfiltered.filter._
 import unfiltered.request._
 import unfiltered.response._
+import unfiltered.scalate._
 
 import org.clapper.avsl.Logger
 
@@ -46,10 +47,25 @@ class RootPlan extends Plan {
       if (cached)
         Head ~> Caching ~> NotModified
       else
-        Head ~> Caching ~> ResponseString(
-          "To register: " +
-          "curl -X PUT -d 'user[password]=pass' -d 'user[email]=you@host' -d 'user[full_name]=Your%20Name' -v http://localhost:8080/users/you")
+        Head ~> Caching ~> HtmlContent ~> ResponseString(
+          """<html><head></head><body>""" +
+          """<form action="/users" method="POST">""" +
+          """<label>id</label><input type="text" name="user[id]"/>""" +
+          """<label>password</label><input type="text" name="user[password]"/>""" +
+          """<label>email</label><input type="text" name="user[email]"/>""" +
+          """<label>full name</label><input type="text" name="user[full_name]"/>""" +
+          """<input type="submit"/>""" +
+          """</form>""" +
+          """</body></html>"""
+        )
     }
+
+//    case req @ POST(Path(Seg("users" :: Nil))) => try {
+//      val Params(form) = req
+//      val name = form("user[id]")(0)
+//      val None = repository findUser name
+//      storeUserFromForm(name, form) map { Created ~> renderer(req)(_) } get
+//    } catch { case _ => BadRequest }    
   }
 }
   
@@ -83,9 +99,12 @@ class UserPlan(override val repository: BookmarksRepository, val renderer: Rende
     if (repository.storeUser(user).isEmpty) Some(user) else None
   }
 
+  
+  
   def intent = {
   // TODO add OPTION
   // TODO add HEAD
+    
     case req @ GET(Path(Seg("users" :: name :: Nil))) => {
       logger.debug("GET /users/%s" format name)
       // TODO add hypermedia

@@ -2,6 +2,7 @@ package edu.luc.cs.webservices.unfiltered.bookmarks
 
 import unfiltered.request._
 import unfiltered.response._
+import unfiltered.scalate._
 import net.liftweb.json.Serialization._
 
 trait Renderer[T] {
@@ -18,7 +19,7 @@ object userRenderer extends Renderer[User] {
       if (langs find (_ startsWith "de") isDefined)
         ResponseString("""<html>mein name ist hase</html>""")
       else
-        ResponseString("""<html>my name is blah</html>""")
+        Scalate(req, "user.jade", ("user", user))
     }
     case _ => PlainTextContent ~> ResponseString(user toString)
   }
