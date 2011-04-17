@@ -11,7 +11,8 @@ object Main {
   val logger = Logger(Main getClass)
   val repository = new InMemoryBookmarksRepository with STMBookmarksRepository
   val plans = Seq(new RootPlan, 
-                  new UserPlan(repository , userRenderer),
+                  new UsersPlan(repository),
+                  new UserPlan(repository, userRenderer),
                   new BookmarksPlan(repository),
                   new BookmarkPlan(repository))
   def applyPlans = plans.foldLeft(_: Server)(_ filter _)

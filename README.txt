@@ -17,12 +17,12 @@ http://code.google.com/p/simple-build-tool/
 Environment
 
 Eclipse Helios (optional)
-Ubuntu 10.10 Maverick
+Ubuntu 10.10 Maverick (for example)
 
 How to run
 
 sbt update
-sbt run # now interact with the app using cURL
+sbt run # now interact with the service using cURL or a browser
 
 or 
 

@@ -1,0 +1,15 @@
+!!! 5
+html(lang="en")
+  head
+    title Sign up for free  
+  body
+    form(action="/users" method="POST")
+      label id:
+      input(type="text" name="user[name]")
+      label password:
+      input(type="text" name="user[password]")
+      label email:
+      input(type="text" name="user[email]")
+      label full name:
+      input(type="text" name="user[full_name]")
+      input(type="submit")
